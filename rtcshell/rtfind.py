@@ -39,13 +39,16 @@ from rtcshell import RTSH_PATH_USAGE, RTSH_VERSION
 from rtcshell.path import cmd_path_to_full_path
 
 
-def search(cmd_path, full_path, options, tree=None):
+def search(cmd_path, full_path, options, tree=None, returnvalue=None):
     path, port = parse_path(full_path)
     if port:
         # Can't search in a port
         print >>sys.stderr, '{0}: Cannot access {1}: No such directory or \
 object.'.format(sys.argv[0], cmd_path)
-        return 1
+        if returnvalue == 'list':
+            return None
+        else:
+            return 1
 
     trailing_slash = False
     if not path[-1]:
@@ -56,20 +59,29 @@ object.'.format(sys.argv[0], cmd_path)
     if not tree:
         tree = create_rtctree(paths=path)
     if not tree:
-        return 1
+        if returnvalue == 'list':
+            return None
+        else :
+            return 1        
 
     # Find the root node of the search
     root = tree.get_node(path)
     if not root:
         print >>sys.stderr, '{0}: Cannot access {1}: No such directory or \
 object.'.format(sys.argv[0], cmd_path)
-        return 1
+        if returnvalue == 'list':
+            return None
+        else :
+            return 1
     if root.is_component and trailing_slash:
         # If there was a trailing slash, complain that a component is not a
         # directory.
         print >>sys.stderr, '{0}: cannot access {1}: Not a directory.'.format(\
                 sys.argv[0], address)
-        return 1
+        if returnvalue == 'list':
+            return None
+        else :
+            return 1
 
     name_res = []
     for name in options.name:
@@ -119,13 +131,15 @@ object.'.format(sys.argv[0], cmd_path)
                 return True
         return False
     matches = root.iterate(get_result, filter=[matches_search])
-    for m in matches:
-        print m
+    
+    if returnvalue == 'list':
+        return matches
+    else :
+        for m in matches:
+            print m
+        return 0
 
-    return 0
-
-
-def main(argv=None, tree=None):
+def main(argv=None, tree=None, returnvalue=None):
     usage = '''Usage: %prog <search path> [options]
 Find entries in the RTC tree matching given constraints.
 
@@ -158,16 +172,22 @@ e.g. "--type dmn".')
         options, args = parser.parse_args()
     except OptionError, e:
         print 'OptionError:', e
-        return 1
+        if returnvalue == 'list':
+            return None
+        else :
+            return 1
 
     if len(args) == 1:
         cmd_path = args[0]
     else:
         print >>sys.stderr, usage
-        return 1
+        if returnvalue == 'list':
+            return None
+        else:
+            return 1
     full_path = cmd_path_to_full_path(cmd_path)
 
-    return search(cmd_path, full_path, options, tree)
+    return search(cmd_path, full_path, options, tree, returnvalue)
 
 
 # vim: tw=79
